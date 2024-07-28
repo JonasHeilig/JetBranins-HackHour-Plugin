@@ -41,6 +41,9 @@
     <!-- Extension points defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
 <extensions defaultExtensionNs="com.intellij">
-
+    <toolWindow id="Hack Hours"
+                anchor="left"
+                factoryClass="de.jonasheilig.jetbraninshackhourplugin.HackHourToolWindowFactory"
+                icon="icons/hackhour.svg"/>
 </extensions>
 </idea-plugin>
