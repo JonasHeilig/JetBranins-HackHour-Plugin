@@ -45,5 +45,10 @@
                 anchor="left"
                 factoryClass="de.jonasheilig.jetbraninshackhourplugin.HackHourToolWindowFactory"
                 icon="icons/hackhour.svg"/>
+    <toolWindow
+        id="SessionsToolWindow"
+        factoryClass="de.jonasheilig.jetbraninshackhourplugin.SessionsToolWindowFactory"
+        anchor="left"
+        icon="icons/hackhour.svg"/>
 </extensions>
 </idea-plugin>

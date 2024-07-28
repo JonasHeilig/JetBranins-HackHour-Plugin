@@ -8,7 +8,9 @@ import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.content.ContentFactory
 import javax.swing.*
 import java.awt.BorderLayout
-import java.awt.CardLayout
+import java.awt.GridBagConstraints
+import java.awt.GridBagLayout
+import java.awt.Insets
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URI
@@ -18,21 +20,23 @@ import com.google.gson.JsonObject
 class HackHourToolWindowFactory : ToolWindowFactory {
     override fun createToolWindowContent(project: com.intellij.openapi.project.Project, toolWindow: ToolWindow) {
         val panel = JPanel(BorderLayout())
-        val inputPanel = JPanel(CardLayout())
-        val displayPanel = JPanel()
+
+        val mainPanel = JPanel(GridBagLayout())
+        val constraints = GridBagConstraints().apply {
+            gridx = 0
+            fill = GridBagConstraints.HORIZONTAL
+            anchor = GridBagConstraints.CENTER
+            insets = Insets(10, 10, 10, 10)
+        }
 
         val slackIdLabel = JLabel("Slack ID:")
         val slackIdField = JTextField(20)
-
         val apiKeyLabel = JLabel("API Key:")
         val apiKeyField = JTextField(20)
-
         val submitButton = JButton("Submit")
-        val toggleButton = JButton("Show Credentials")
 
         val yourMinutesLabel = JLabel("Your Sessions:")
         val yourMinutesValue = JLabel("0")
-
         val yourHoursLabel = JLabel("Your Minutes:")
         val yourHoursValue = JLabel("0")
 
@@ -45,27 +49,30 @@ class HackHourToolWindowFactory : ToolWindowFactory {
         slackIdField.text = savedSlackId
         apiKeyField.text = savedApiKey
 
-        var areCredentialsVisible = false
+        mainPanel.add(slackIdLabel, constraints.apply { gridy = 0 })
+        mainPanel.add(slackIdField, constraints.apply { gridy = 1 })
+        mainPanel.add(apiKeyLabel, constraints.apply { gridy = 2 })
+        mainPanel.add(apiKeyField, constraints.apply { gridy = 3 })
+        mainPanel.add(submitButton, constraints.apply { gridy = 4 })
 
-        val credentialsPanel = JPanel()
-        credentialsPanel.layout = BoxLayout(credentialsPanel, BoxLayout.Y_AXIS)
-        credentialsPanel.add(slackIdLabel)
-        credentialsPanel.add(slackIdField)
-        credentialsPanel.add(apiKeyLabel)
-        credentialsPanel.add(apiKeyField)
-        credentialsPanel.add(submitButton)
+        val smallerSpacer = Box.createVerticalStrut(20)
+        constraints.gridy = 5
+        constraints.weighty = 0.0
+        mainPanel.add(smallerSpacer, constraints)
 
-        inputPanel.add(JPanel(), "default")
-        inputPanel.add(credentialsPanel, "credentials")
-
-        val cardLayout = inputPanel.layout as CardLayout
-
-        toggleButton.addActionListener {
-            areCredentialsVisible = !areCredentialsVisible
-            cardLayout.show(inputPanel, if (areCredentialsVisible) "credentials" else "default")
-            panel.revalidate()
-            panel.repaint()
-        }
+        constraints.gridy = 6
+        constraints.weighty = 0.0
+        mainPanel.add(yourMinutesLabel, constraints)
+        constraints.gridy = 7
+        mainPanel.add(yourMinutesValue, constraints)
+        constraints.gridy = 8
+        mainPanel.add(yourHoursLabel, constraints)
+        constraints.gridy = 9
+        mainPanel.add(yourHoursValue, constraints)
+        constraints.gridy = 10
+        mainPanel.add(updateButton, constraints)
+        constraints.gridy = 11
+        mainPanel.add(debugButton, constraints)
 
         submitButton.addActionListener {
             val slackId = slackIdField.text
@@ -85,11 +92,6 @@ class HackHourToolWindowFactory : ToolWindowFactory {
                     "Info",
                     Messages.getInformationIcon()
                 )
-                areCredentialsVisible = false
-                cardLayout.show(inputPanel, "default")
-                toggleButton.text = "Show Credentials"
-                panel.revalidate()
-                panel.repaint()
             }
         }
 
@@ -158,20 +160,7 @@ class HackHourToolWindowFactory : ToolWindowFactory {
             }
         }
 
-        val inputContainerPanel = JPanel(BorderLayout())
-        inputContainerPanel.add(toggleButton, BorderLayout.NORTH)
-        inputContainerPanel.add(inputPanel, BorderLayout.CENTER)
-
-        displayPanel.layout = BoxLayout(displayPanel, BoxLayout.Y_AXIS)
-        displayPanel.add(yourMinutesLabel)
-        displayPanel.add(yourMinutesValue)
-        displayPanel.add(yourHoursLabel)
-        displayPanel.add(yourHoursValue)
-        displayPanel.add(updateButton)
-        displayPanel.add(debugButton)
-
-        panel.add(inputContainerPanel, BorderLayout.NORTH)
-        panel.add(displayPanel, BorderLayout.CENTER)
+        panel.add(mainPanel, BorderLayout.CENTER)
 
         val contentFactory = ContentFactory.getInstance()
         val content = contentFactory.createContent(panel, "", false)
