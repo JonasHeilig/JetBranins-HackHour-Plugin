@@ -37,7 +37,6 @@ class HackHourToolWindowFactory : ToolWindowFactory {
         val yourHoursValue = JLabel("0")
 
         val updateButton = JButton("Update")
-        val editVarButton = JButton("Edit Var")
 
         val properties = PropertiesComponent.getInstance()
         val savedSlackId = properties.getValue("hackhour.slackId", "")
@@ -78,6 +77,66 @@ class HackHourToolWindowFactory : ToolWindowFactory {
                 )
                 return@addActionListener
             }
+
+            ApplicationManager.getApplication().executeOnPooledThread {
+                try {
+                    val urlString = "https://hackhour.hackclub.com/api/stats/$slackId"
+                    val url = URL(urlString)
+                    val connection = url.openConnection() as HttpURLConnection
+                    connection.requestMethod = "GET"
+                    connection.setRequestProperty("Authorization", "Bearer $apiKey")
+
+                    val responseCode = connection.responseCode
+                    if (responseCode == HttpURLConnection.HTTP_OK) {
+                        val response = InputStreamReader(connection.inputStream).use { it.readText() }
+                        val json = Gson().fromJson(response, JsonObject::class.java)
+                        val sessions = json["data"].asJsonObject["sessions"].asInt
+                        val totalHours = json["data"].asJsonObject["total"].asInt
+
+                        SwingUtilities.invokeLater {
+                            yourMinutesValue.text = sessions.toString()
+                            yourHoursValue.text = totalHours.toString()
+                        }
+                    } else {
+                        SwingUtilities.invokeLater {
+                            Messages.showMessageDialog(
+                                "Failed to fetch hours. Response code: $responseCode",
+                                "Error",
+                                Messages.getErrorIcon()
+                            )
+                        }
+                    }
+                } catch (e: Exception) {
+                    SwingUtilities.invokeLater {
+                        Messages.showMessageDialog(
+                            "An error occurred: ${e.message}",
+                            "Error",
+                            Messages.getErrorIcon()
+                        )
+                    }
+                }
+            }
         }
+
+        inputPanel.layout = BoxLayout(inputPanel, BoxLayout.Y_AXIS)
+        inputPanel.add(slackIdLabel)
+        inputPanel.add(slackIdField)
+        inputPanel.add(apiKeyLabel)
+        inputPanel.add(apiKeyField)
+        inputPanel.add(submitButton)
+
+        displayPanel.layout = BoxLayout(displayPanel, BoxLayout.Y_AXIS)
+        displayPanel.add(yourMinutesLabel)
+        displayPanel.add(yourHoursValue)
+        displayPanel.add(yourHoursLabel)
+        displayPanel.add(yourMinutesValue)
+        displayPanel.add(updateButton)
+
+        panel.add(inputPanel, BorderLayout.NORTH)
+        panel.add(displayPanel, BorderLayout.CENTER)
+
+        val contentFactory = ContentFactory.getInstance()
+        val content = contentFactory.createContent(panel, "", false)
+        toolWindow.contentManager.addContent(content)
     }
 }
