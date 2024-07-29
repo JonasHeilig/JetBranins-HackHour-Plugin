@@ -18,6 +18,7 @@ import com.google.gson.Gson
 import com.google.gson.JsonObject
 
 class HackHourToolWindowFactory : ToolWindowFactory {
+
     override fun createToolWindowContent(project: com.intellij.openapi.project.Project, toolWindow: ToolWindow) {
         val panel = JPanel(BorderLayout())
 
@@ -41,6 +42,7 @@ class HackHourToolWindowFactory : ToolWindowFactory {
         val yourHoursValue = JLabel("0")
 
         val updateButton = JButton("Update")
+        val viewSessionsButton = JButton("View All Sessions")
         val debugButton = JButton("Show Raw Response")
 
         val properties = PropertiesComponent.getInstance()
@@ -72,6 +74,8 @@ class HackHourToolWindowFactory : ToolWindowFactory {
         constraints.gridy = 10
         mainPanel.add(updateButton, constraints)
         constraints.gridy = 11
+        mainPanel.add(viewSessionsButton, constraints)
+        constraints.gridy = 12
         mainPanel.add(debugButton, constraints)
 
         submitButton.addActionListener {
@@ -145,6 +149,79 @@ class HackHourToolWindowFactory : ToolWindowFactory {
                                 response,
                                 "Raw Response",
                                 Messages.getInformationIcon()
+                            )
+                        }
+                    }
+                } catch (e: Exception) {
+                    SwingUtilities.invokeLater {
+                        Messages.showMessageDialog(
+                            "An error occurred: ${e.message}",
+                            "Error",
+                            Messages.getErrorIcon()
+                        )
+                    }
+                }
+            }
+        }
+
+        viewSessionsButton.addActionListener {
+            val slackId = properties.getValue("hackhour.slackId", "")
+            val apiKey = properties.getValue("hackhour.apiKey", "")
+
+            if (slackId.isEmpty() || apiKey.isEmpty()) {
+                Messages.showMessageDialog(
+                    "Slack ID or API Key not set. Please configure them first.",
+                    "Error",
+                    Messages.getErrorIcon()
+                )
+                return@addActionListener
+            }
+
+            ApplicationManager.getApplication().executeOnPooledThread {
+                try {
+                    val urlString = "https://hackhour.hackclub.com/api/history/$slackId"
+                    val uri = URI(urlString)
+                    val url = uri.toURL()
+                    val connection = url.openConnection() as HttpURLConnection
+                    connection.requestMethod = "GET"
+                    connection.setRequestProperty("Authorization", "Bearer $apiKey")
+
+                    val responseCode = connection.responseCode
+                    val response = InputStreamReader(connection.inputStream).use { it.readText() }
+
+                    if (responseCode == HttpURLConnection.HTTP_OK) {
+                        val json = Gson().fromJson(response, JsonObject::class.java)
+                        val sessionsArray = json["data"].asJsonArray
+
+                        SwingUtilities.invokeLater {
+                            val sessionsFrame = JFrame("All Sessions")
+                            sessionsFrame.setSize(800, 600)
+                            sessionsFrame.defaultCloseOperation = JFrame.DISPOSE_ON_CLOSE
+
+                            val sessionsTable = JTable(
+                                Array(sessionsArray.size()) { i ->
+                                    val session = sessionsArray[i].asJsonObject
+                                    arrayOf(
+                                        session["createdAt"].asString,
+                                        session["time"].asInt.toString(),
+                                        session["elapsed"].asInt.toString(),
+                                        session["goal"].asString,
+                                        session["ended"].asBoolean.toString(),
+                                        session["work"].asString
+                                    )
+                                },
+                                arrayOf("Created At", "Time", "Elapsed", "Goal", "Ended", "Work")
+                            )
+
+                            sessionsFrame.add(JScrollPane(sessionsTable))
+                            sessionsFrame.isVisible = true
+                        }
+                    } else {
+                        SwingUtilities.invokeLater {
+                            Messages.showMessageDialog(
+                                "Failed to fetch session history. Response code: $responseCode",
+                                "Error",
+                                Messages.getErrorIcon()
                             )
                         }
                     }
