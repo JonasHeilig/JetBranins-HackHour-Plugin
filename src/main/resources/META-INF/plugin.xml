@@ -37,5 +37,10 @@
                     factoryClass="de.jonasheilig.jetbrainshackhourplugin.HackHourToolWindowFactory"
                     icon="icons/hackhour.svg"/>
 
+        <toolWindow id="Session Manager"
+                    anchor="left"
+                    factoryClass="de.jonasheilig.jetbrainshackhourplugin.SessionManagerToolWindowFactory"
+                    icon="icons/hackhour.svg"/>
+
     </extensions>
 </idea-plugin>
