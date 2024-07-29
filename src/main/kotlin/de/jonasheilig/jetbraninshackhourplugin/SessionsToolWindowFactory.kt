@@ -61,7 +61,53 @@ class SessionsToolWindowFactory : ToolWindowFactory {
                     val responseCode = connection.responseCode
                     val response = InputStreamReader(connection.inputStream).use { it.readText() }
 
+                    if (responseCode == HttpURLConnection.HTTP_OK) {
+                        val json = Gson().fromJson(response, JsonObject::class.java)
+                        val sessionsArray = json["data"].asJsonArray
 
+                        SwingUtilities.invokeLater {
+                            val sessionsFrame = JFrame("All Sessions")
+                            sessionsFrame.setSize(800, 600)
+                            sessionsFrame.defaultCloseOperation = JFrame.DISPOSE_ON_CLOSE
+
+                            val sessionsTable = JTable(
+                                Array(sessionsArray.size()) { i ->
+                                    val session = sessionsArray[i].asJsonObject
+                                    arrayOf(
+                                        session["createdAt"].asString,
+                                        session["time"].asInt.toString(),
+                                        session["elapsed"].asInt.toString(),
+                                        session["goal"].asString,
+                                        session["ended"].asBoolean.toString(),
+                                        session["work"].asString
+                                    )
+                                },
+                                arrayOf("Created At", "Time", "Elapsed", "Goal", "Ended", "Work")
+                            )
+
+                            sessionsFrame.add(JScrollPane(sessionsTable))
+                            sessionsFrame.isVisible = true
+                        }
+                    } else {
+                        SwingUtilities.invokeLater {
+                            Messages.showMessageDialog(
+                                "Failed to fetch session history. Response code: $responseCode",
+                                "Error",
+                                Messages.getErrorIcon()
+                            )
+                        }
+                    }
+                } catch (e: Exception) {
+                    SwingUtilities.invokeLater {
+                        Messages.showMessageDialog(
+                            "An error occurred: ${e.message}",
+                            "Error",
+                            Messages.getErrorIcon()
+                        )
+                    }
+                }
+            }
+        }
 
         panel.add(mainPanel, BorderLayout.CENTER)
 

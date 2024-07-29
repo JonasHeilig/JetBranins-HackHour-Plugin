@@ -46,7 +46,7 @@
                 factoryClass="de.jonasheilig.jetbraninshackhourplugin.HackHourToolWindowFactory"
                 icon="icons/hackhour.svg"/>
     <toolWindow
-        id="SessionsToolWindow"
+        id="All Sessions"
         factoryClass="de.jonasheilig.jetbraninshackhourplugin.SessionsToolWindowFactory"
         anchor="left"
         icon="icons/hackhour.svg"/>
