@@ -1,54 +1,45 @@
-<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
-    <!-- Unique identifier of the plugin. It should be FQN. It cannot be changed between the plugin versions. -->
-    <id>de.jonasheilig.JetBranins-HackHour-Plugin</id>
-
-    <!-- Public plugin name should be written in Title Case.
-         Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-name -->
-    <name>JetBranins-HackHour-Plugin</name>
-
-    <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
-    <vendor email="support@yourcompany.com" url="https://www.jonasheilig.de">JonasHeilig</vendor>
-
-    <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
-         Simple HTML elements (text formatting, paragraphs, and lists) can be added inside of <![CDATA[ ]]> tag.
-         Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
+    <id>de.jonasheilig.JetBrains-HackHour-Plugin</id>
+    <name>HackHourPlugin</name>
+    <vendor email="" url="https://www.jonasheilig.de">JonasHeilig</vendor>
     <description><![CDATA[
-    This Plugin implement a UI for the HackClub Hack Hour.
-  ]]></description>
+        This Plugin implements a UI for the HackClub Hack Hour.
+    ]]></description>
 
     <actions>
+        <group id="de.jonasheilig.jetbrainshackhourplugin.HackHourGroup" text="HackHour">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </group>
+
         <action
-            id="de.jonasheilig.jetbraninshackhourplugin.MyAction"
-            class="de.jonasheilig.jetbraninshackhourplugin.MyAction"
-            text="Test Plugin"
+            id="de.jonasheilig.jetbrainshackhourplugin.MyAction"
+            class="de.jonasheilig.jetbrainshackhourplugin.MyAction"
+            text="Test the Plugin"
             description="Displays a simple test message">
-            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <add-to-group group-id="de.jonasheilig.jetbrainshackhourplugin.HackHourGroup" anchor="first"/>
         </action>
+
         <action
-            id="de.jonasheilig.jetbrainshackhourplugin.ShowHoursAction"
-            class="de.jonasheilig.jetbraninshackhourplugin.ShowHoursAction"
-            text="Show Hack Hours"
-            description="Displays the total hours logged in Hack Hour">
-            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            id="de.jonasheilig.jetbrainshackhourplugin.ShowStatusAction"
+            class="de.jonasheilig.jetbrainshackhourplugin.ShowStatusAction"
+            text="Show Status"
+            description="Test the HackHour API">
+            <add-to-group group-id="de.jonasheilig.jetbrainshackhourplugin.HackHourGroup" anchor="first"/>
         </action>
+
     </actions>
 
-    <!-- Product and plugin compatibility requirements.
-         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
     <depends>com.intellij.modules.platform</depends>
 
-    <!-- Extension points defined by the plugin.
-         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
-<extensions defaultExtensionNs="com.intellij">
-    <toolWindow id="Hack Hours"
-                anchor="left"
-                factoryClass="de.jonasheilig.jetbraninshackhourplugin.HackHourToolWindowFactory"
-                icon="icons/hackhour.svg"/>
-    <toolWindow
-        id="All Sessions"
-        factoryClass="de.jonasheilig.jetbraninshackhourplugin.SessionsToolWindowFactory"
-        anchor="left"
-        icon="icons/hackhour.svg"/>
-</extensions>
+    <extensions defaultExtensionNs="com.intellij">
+        <toolWindow id="Total Stats"
+                    anchor="left"
+                    factoryClass="de.jonasheilig.jetbrainshackhourplugin.HackHourToolWindowFactory"
+                    icon="icons/hackhour.svg"/>
+        <toolWindow
+            id="Session Manager"
+            factoryClass="de.jonasheilig.jetbrainshackhourplugin.SessionsToolWindowFactory"
+            anchor="left"
+            icon="icons/hackhour.svg"/>
+    </extensions>
 </idea-plugin>

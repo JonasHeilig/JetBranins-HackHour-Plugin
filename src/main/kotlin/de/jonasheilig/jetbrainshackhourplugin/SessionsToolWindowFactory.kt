@@ -1,4 +1,4 @@
-package de.jonasheilig.jetbraninshackhourplugin
+package de.jonasheilig.jetbrainshackhourplugin
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.ui.Messages
@@ -15,7 +15,6 @@ import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URI
 import com.google.gson.Gson
-import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 
 class SessionsToolWindowFactory : ToolWindowFactory {

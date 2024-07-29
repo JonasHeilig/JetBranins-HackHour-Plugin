@@ -1,4 +1,4 @@
-package de.jonasheilig.jetbraninshackhourplugin
+package de.jonasheilig.jetbrainshackhourplugin
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.ui.Messages
