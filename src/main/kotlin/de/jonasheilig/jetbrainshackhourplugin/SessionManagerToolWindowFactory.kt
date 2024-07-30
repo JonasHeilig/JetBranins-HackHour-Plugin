@@ -56,11 +56,11 @@ class SessionManagerToolWindowFactory : ToolWindowFactory {
         }
         constraints.gridy = 0
         val startButton = JButton("Start Session")
-        val pauseButton = JButton("Pause Session")
+        val pauseResumeButton = JButton("Pause Session")
         val stopButton = JButton("Stop Session")
         manageSessionPanel.add(startButton, constraints)
         constraints.gridy = 1
-        manageSessionPanel.add(pauseButton, constraints)
+        manageSessionPanel.add(pauseResumeButton, constraints)
         constraints.gridy = 2
         manageSessionPanel.add(stopButton, constraints)
 
@@ -108,6 +108,12 @@ class SessionManagerToolWindowFactory : ToolWindowFactory {
         mainPanel.add(infoPanel, BorderLayout.EAST)
         mainPanel.add(displayPanel, BorderLayout.CENTER)
 
+        val properties = PropertiesComponent.getInstance()
+        val savedSlackId = properties.getValue("hackhour.slackId", "")
+        val savedApiKey = properties.getValue("hackhour.apiKey", "")
+        slackIdField.text = savedSlackId
+        apiKeyField.text = savedApiKey
+
         submitButton.addActionListener {
             val slackId = slackIdField.text
             val apiKey = apiKeyField.text
@@ -119,12 +125,11 @@ class SessionManagerToolWindowFactory : ToolWindowFactory {
                     Messages.getErrorIcon()
                 )
             } else {
-                val properties = PropertiesComponent.getInstance()
                 properties.setValue("hackhour.slackId", slackId)
                 properties.setValue("hackhour.apiKey", apiKey)
 
                 startButton.addActionListener { manageSession(slackId, apiKey, "start", "Session started successfully.", sessionInfoArea) }
-                pauseButton.addActionListener { manageSession(slackId, apiKey, "pause", "Session paused successfully.", sessionInfoArea) }
+                pauseResumeButton.addActionListener { manageSession(slackId, apiKey, "pause", "Session paused successfully.", sessionInfoArea, pauseResumeButton) }
                 stopButton.addActionListener { manageSession(slackId, apiKey, "cancel", "Session canceled successfully.", sessionInfoArea) }
                 sessionInfoButton.addActionListener { fetchSessionInfo(slackId, apiKey, sessionInfoArea) }
                 statsButton.addActionListener { fetchStats(slackId, apiKey, statsArea) }
@@ -144,7 +149,7 @@ class SessionManagerToolWindowFactory : ToolWindowFactory {
         toolWindow.contentManager.addContent(content)
     }
 
-    private fun manageSession(slackId: String, apiKey: String, action: String, successMessage: String, displayArea: JTextArea) {
+    private fun manageSession(slackId: String, apiKey: String, action: String, successMessage: String, displayArea: JTextArea, pauseResumeButton: JButton? = null) {
         if (slackId.isEmpty() || apiKey.isEmpty()) {
             Messages.showMessageDialog(
                 "Slack ID or API Key not set. Please configure them first.",
@@ -166,17 +171,22 @@ class SessionManagerToolWindowFactory : ToolWindowFactory {
                 val responseCode = connection.responseCode
                 val response = InputStreamReader(connection.inputStream).use { it.readText() }
 
-                if (responseCode == HttpURLConnection.HTTP_OK) {
-                    SwingUtilities.invokeLater {
+                SwingUtilities.invokeLater {
+                    if (responseCode == HttpURLConnection.HTTP_OK) {
                         displayArea.text = formatResponse(response)
                         Messages.showMessageDialog(
                             successMessage,
                             "Info",
                             Messages.getInformationIcon()
                         )
-                    }
-                } else {
-                    SwingUtilities.invokeLater {
+                        if (action == "pause" && pauseResumeButton != null) {
+                            pauseResumeButton.text = "Resume Session"
+                            pauseResumeButton.actionCommand = "resume"
+                        } else if (action == "resume" && pauseResumeButton != null) {
+                            pauseResumeButton.text = "Pause Session"
+                            pauseResumeButton.actionCommand = "pause"
+                        }
+                    } else {
                         displayArea.text = "Failed to perform action. Response code: $responseCode"
                         Messages.showMessageDialog(
                             "Failed to perform action. Response code: $responseCode",
@@ -222,14 +232,22 @@ class SessionManagerToolWindowFactory : ToolWindowFactory {
 
                 SwingUtilities.invokeLater {
                     if (responseCode == HttpURLConnection.HTTP_OK) {
-                        val jsonObject = Gson().fromJson(response, JsonObject::class.java)
-                        val data = jsonObject.getAsJsonObject("data")
-                        displayArea.text = buildString {
-                            append("Session ID: ${data["id"].asString}\n")
-                            append("Created At: ${data["createdAt"].asString}\n")
-                            append("Elapsed Time: ${data["elapsed"].asInt} minutes\n")
-                            append("Remaining Time: ${data["remaining"].asInt} minutes\n")
-                            append("Status: ${data["status"].asString}\n")
+                        try {
+                            val jsonObject = Gson().fromJson(response, JsonObject::class.java)
+                            val data = jsonObject.getAsJsonObject("data")
+                            displayArea.text = buildString {
+                                append("Created At: ${data["createdAt"]?.asString ?: "N/A"}\n")
+                                append("Time: ${data["time"]?.asInt ?: 0} minutes\n")
+                                append("Elapsed: ${data["elapsed"]?.asInt ?: 0} minutes\n")
+                                append("Remaining: ${data["remaining"]?.asInt ?: 0} minutes\n")
+                                append("End Time: ${data["endTime"]?.asString ?: "N/A"}\n")
+                                append("Goal: ${data["goal"]?.asString ?: "N/A"}\n")
+                                append("Paused: ${data["paused"]?.asBoolean ?: false}\n")
+                                append("Completed: ${data["completed"]?.asBoolean ?: false}\n")
+                                append("Message Timestamp: ${data["messageTs"]?.asString ?: "N/A"}\n")
+                            }
+                        } catch (e: Exception) {
+                            displayArea.text = "Error parsing JSON response: ${e.message}"
                         }
                     } else {
                         displayArea.text = "Failed to fetch session info. Response code: $responseCode"
@@ -267,11 +285,15 @@ class SessionManagerToolWindowFactory : ToolWindowFactory {
 
                 SwingUtilities.invokeLater {
                     if (responseCode == HttpURLConnection.HTTP_OK) {
-                        val jsonObject = Gson().fromJson(response, JsonObject::class.java)
-                        val data = jsonObject.getAsJsonObject("data")
-                        displayArea.text = buildString {
-                            append("Total Sessions: ${data["totalSessions"].asInt}\n")
-                            append("Total Hours: ${data["totalHours"].asFloat}\n")
+                        try {
+                            val jsonObject = Gson().fromJson(response, JsonObject::class.java)
+                            val data = jsonObject.getAsJsonObject("data")
+                            displayArea.text = buildString {
+                                append("Sessions: ${data["sessions"]?.asInt ?: 0}\n")
+                                append("Total Time: ${data["total"]?.asInt ?: 0} minutes\n")
+                            }
+                        } catch (e: Exception) {
+                            displayArea.text = "Error parsing JSON response: ${e.message}"
                         }
                     } else {
                         displayArea.text = "Failed to fetch stats. Response code: $responseCode"
@@ -309,11 +331,19 @@ class SessionManagerToolWindowFactory : ToolWindowFactory {
 
                 SwingUtilities.invokeLater {
                     if (responseCode == HttpURLConnection.HTTP_OK) {
-                        val jsonObject = Gson().fromJson(response, JsonObject::class.java)
-                        val data = jsonObject.getAsJsonObject("data")
-                        displayArea.text = buildString {
-                            append("Current Goal: ${data["currentGoal"].asString}\n")
-                            append("Completed Goals: ${data["completedGoals"].asInt}\n")
+                        try {
+                            val jsonObject = Gson().fromJson(response, JsonObject::class.java)
+                            val jsonArray = jsonObject.getAsJsonArray("data")
+                            val goalsList = StringBuilder()
+                            for (goal in jsonArray) {
+                                val goalObj = goal.asJsonObject
+                                val goalName = goalObj.get("name")?.asString ?: "N/A"
+                                val goalMinutes = goalObj.get("minutes")?.asInt ?: 0
+                                goalsList.append("Goal: $goalName, Minutes: $goalMinutes\n")
+                            }
+                            displayArea.text = goalsList.toString()
+                        } catch (e: Exception) {
+                            displayArea.text = "Error parsing JSON response: ${e.message}"
                         }
                     } else {
                         displayArea.text = "Failed to fetch goals. Response code: $responseCode"
@@ -351,20 +381,17 @@ class SessionManagerToolWindowFactory : ToolWindowFactory {
 
                 SwingUtilities.invokeLater {
                     if (responseCode == HttpURLConnection.HTTP_OK) {
-                        val jsonArray = Gson().fromJson(response, JsonArray::class.java)
-                        val tableModel = HistoryTableModel(jsonArray)
-                        val historyTable = JTable(tableModel)
-
-                        val historyScrollPane = JScrollPane(historyTable)
-                        historyTable.autoResizeMode = JTable.AUTO_RESIZE_OFF
-                        historyTable.setFillsViewportHeight(true)
-
-                        val historyFrame = JFrame("Session History")
-                        historyFrame.defaultCloseOperation = JFrame.DISPOSE_ON_CLOSE
-                        historyFrame.size = Dimension(800, 600)
-                        historyFrame.layout = BorderLayout()
-                        historyFrame.add(historyScrollPane, BorderLayout.CENTER)
-                        historyFrame.isVisible = true
+                        try {
+                            val jsonObject = Gson().fromJson(response, JsonObject::class.java)
+                            val jsonArray = jsonObject.getAsJsonArray("data")
+                            createHistoryDialog(jsonArray)
+                        } catch (e: Exception) {
+                            Messages.showMessageDialog(
+                                "Error parsing JSON response: ${e.message}",
+                                "Error",
+                                Messages.getErrorIcon()
+                            )
+                        }
                     } else {
                         Messages.showMessageDialog(
                             "Failed to fetch history. Response code: $responseCode",
@@ -385,32 +412,40 @@ class SessionManagerToolWindowFactory : ToolWindowFactory {
         }
     }
 
+    private fun createHistoryDialog(historyArray: JsonArray) {
+        val historyFrame = JFrame("History")
+        val historyTable = JTable(HistoryTableModel(historyArray))
+        val scrollPane = JScrollPane(historyTable)
+        historyFrame.add(scrollPane)
+        historyFrame.setSize(600, 400)
+        historyFrame.setLocationRelativeTo(null)
+        historyFrame.isVisible = true
+    }
+
     private fun formatResponse(response: String): String {
         return response
     }
-}
 
-class HistoryTableModel(private val jsonArray: JsonArray) : AbstractTableModel() {
+    private inner class HistoryTableModel(private val historyArray: JsonArray) : AbstractTableModel() {
+        private val columnNames = arrayOf("Date", "Time", "Goal", "Work")
 
-    private val columnNames = listOf("ID", "Created At", "Elapsed", "Remaining", "Status")
+        override fun getRowCount(): Int = historyArray.size()
 
-    override fun getRowCount(): Int = jsonArray.size()
+        override fun getColumnCount(): Int = columnNames.size
 
-    override fun getColumnCount(): Int = columnNames.size
-
-    override fun getValueAt(rowIndex: Int, columnIndex: Int): Any {
-        val jsonObject = jsonArray.get(rowIndex).asJsonObject
-        return when (columnIndex) {
-            0 -> jsonObject.get("id").asString
-            1 -> jsonObject.get("createdAt").asString
-            2 -> jsonObject.get("elapsed").asInt
-            3 -> jsonObject.get("remaining").asInt
-            4 -> jsonObject.get("status").asString
-            else -> ""
+        override fun getValueAt(rowIndex: Int, columnIndex: Int): Any {
+            val entry = historyArray[rowIndex].asJsonObject
+            return when (columnIndex) {
+                0 -> entry.get("createdAt")?.asString ?: "N/A"
+                1 -> entry.get("time")?.asInt ?: 0
+                2 -> entry.get("goal")?.asString ?: "N/A"
+                3 -> entry.get("work")?.asString ?: "N/A"
+                else -> "N/A"
+            }
         }
-    }
 
-    override fun getColumnName(column: Int): String {
-        return columnNames[column]
+        override fun getColumnName(column: Int): String {
+            return columnNames[column]
+        }
     }
 }
