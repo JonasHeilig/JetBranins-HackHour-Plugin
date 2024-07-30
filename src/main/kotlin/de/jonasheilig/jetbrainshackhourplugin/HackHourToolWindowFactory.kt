@@ -7,10 +7,9 @@ import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.content.ContentFactory
 import javax.swing.*
-import java.awt.BorderLayout
-import java.awt.GridBagConstraints
-import java.awt.GridBagLayout
-import java.awt.Insets
+import javax.swing.border.EmptyBorder
+import javax.swing.border.TitledBorder
+import java.awt.*
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URI
@@ -23,6 +22,7 @@ class HackHourToolWindowFactory : ToolWindowFactory {
         val panel = JPanel(BorderLayout())
 
         val mainPanel = JPanel(GridBagLayout())
+        mainPanel.border = EmptyBorder(10, 10, 10, 10)
         val constraints = GridBagConstraints().apply {
             gridx = 0
             fill = GridBagConstraints.HORIZONTAL
@@ -30,20 +30,14 @@ class HackHourToolWindowFactory : ToolWindowFactory {
             insets = Insets(10, 10, 10, 10)
         }
 
+        val credentialsPanel = JPanel(GridBagLayout()).apply {
+            border = TitledBorder("Credentials")
+        }
         val slackIdLabel = JLabel("Slack ID:")
         val slackIdField = JTextField(20)
         val apiKeyLabel = JLabel("API Key:")
         val apiKeyField = JTextField(20)
         val submitButton = JButton("Submit")
-
-        val yourMinutesLabel = JLabel("Your Sessions:")
-        val yourMinutesValue = JLabel("0")
-        val yourHoursLabel = JLabel("Your Minutes:")
-        val yourHoursValue = JLabel("0")
-
-        val updateButton = JButton("Update")
-        val viewSessionsButton = JButton("View All Sessions")
-        val debugButton = JButton("Show Raw Response")
 
         val properties = PropertiesComponent.getInstance()
         val savedSlackId = properties.getValue("hackhour.slackId", "")
@@ -51,32 +45,39 @@ class HackHourToolWindowFactory : ToolWindowFactory {
         slackIdField.text = savedSlackId
         apiKeyField.text = savedApiKey
 
-        mainPanel.add(slackIdLabel, constraints.apply { gridy = 0 })
-        mainPanel.add(slackIdField, constraints.apply { gridy = 1 })
-        mainPanel.add(apiKeyLabel, constraints.apply { gridy = 2 })
-        mainPanel.add(apiKeyField, constraints.apply { gridy = 3 })
-        mainPanel.add(submitButton, constraints.apply { gridy = 4 })
+        credentialsPanel.add(slackIdLabel, constraints.apply { gridy = 0 })
+        credentialsPanel.add(slackIdField, constraints.apply { gridy = 1 })
+        credentialsPanel.add(apiKeyLabel, constraints.apply { gridy = 2 })
+        credentialsPanel.add(apiKeyField, constraints.apply { gridy = 3 })
+        credentialsPanel.add(submitButton, constraints.apply { gridy = 4 })
 
-        val smallerSpacer = Box.createVerticalStrut(20)
-        constraints.gridy = 5
-        constraints.weighty = 0.0
-        mainPanel.add(smallerSpacer, constraints)
+        val statsPanel = JPanel(GridBagLayout()).apply {
+            border = TitledBorder("Your Stats")
+        }
+        val yourMinutesLabel = JLabel("Your Sessions:").apply { font = font.deriveFont(Font.BOLD) }
+        val yourMinutesValue = JLabel("0").apply { font = font.deriveFont(Font.PLAIN, 16f) }
+        val yourHoursLabel = JLabel("Your Minutes:").apply { font = font.deriveFont(Font.BOLD) }
+        val yourHoursValue = JLabel("0").apply { font = font.deriveFont(Font.PLAIN, 16f) }
+        val updateButton = JButton("Update")
 
-        constraints.gridy = 6
-        constraints.weighty = 0.0
-        mainPanel.add(yourMinutesLabel, constraints)
-        constraints.gridy = 7
-        mainPanel.add(yourMinutesValue, constraints)
-        constraints.gridy = 8
-        mainPanel.add(yourHoursLabel, constraints)
-        constraints.gridy = 9
-        mainPanel.add(yourHoursValue, constraints)
-        constraints.gridy = 10
-        mainPanel.add(updateButton, constraints)
-        constraints.gridy = 11
-        mainPanel.add(viewSessionsButton, constraints)
-        constraints.gridy = 12
-        mainPanel.add(debugButton, constraints)
+        statsPanel.add(yourMinutesLabel, constraints.apply { gridy = 0 })
+        statsPanel.add(yourMinutesValue, constraints.apply { gridy = 1 })
+        statsPanel.add(yourHoursLabel, constraints.apply { gridy = 2 })
+        statsPanel.add(yourHoursValue, constraints.apply { gridy = 3 })
+        statsPanel.add(updateButton, constraints.apply { gridy = 4 })
+
+        val actionsPanel = JPanel(GridBagLayout()).apply {
+            border = TitledBorder("Actions")
+        }
+        val viewSessionsButton = JButton("View All Sessions")
+        val debugButton = JButton("Show Raw Response")
+
+        actionsPanel.add(viewSessionsButton, constraints.apply { gridy = 0 })
+        actionsPanel.add(debugButton, constraints.apply { gridy = 1 })
+
+        mainPanel.add(credentialsPanel, constraints.apply { gridy = 0; gridx = 0 })
+        mainPanel.add(statsPanel, constraints.apply { gridy = 1; gridx = 0 })
+        mainPanel.add(actionsPanel, constraints.apply { gridy = 2; gridx = 0 })
 
         submitButton.addActionListener {
             val slackId = slackIdField.text

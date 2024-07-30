@@ -18,9 +18,8 @@ import java.net.URI
 class SessionManagerToolWindowFactory : ToolWindowFactory {
 
     override fun createToolWindowContent(project: com.intellij.openapi.project.Project, toolWindow: ToolWindow) {
-        val panel = JPanel(BorderLayout())
-
-        val mainPanel = JPanel(GridBagLayout())
+        val mainPanel = JPanel(BorderLayout())
+        val formPanel = JPanel(GridBagLayout())
         val constraints = GridBagConstraints().apply {
             gridx = 0
             fill = GridBagConstraints.HORIZONTAL
@@ -34,6 +33,21 @@ class SessionManagerToolWindowFactory : ToolWindowFactory {
         val apiKeyField = JTextField(20)
         val submitButton = JButton("Submit")
 
+        constraints.gridy = 0
+        formPanel.add(slackIdLabel, constraints)
+        constraints.gridy = 1
+        formPanel.add(slackIdField, constraints)
+        constraints.gridy = 2
+        formPanel.add(apiKeyLabel, constraints)
+        constraints.gridy = 3
+        formPanel.add(apiKeyField, constraints)
+        constraints.gridy = 4
+        formPanel.add(submitButton, constraints)
+
+        val buttonPanel = JPanel(GridBagLayout())
+        constraints.weightx = 1.0
+        constraints.fill = GridBagConstraints.HORIZONTAL
+
         val startButton = JButton("Start Session")
         val pauseButton = JButton("Pause Session")
         val stopButton = JButton("Stop Session")
@@ -42,49 +56,50 @@ class SessionManagerToolWindowFactory : ToolWindowFactory {
         val goalsButton = JButton("Get Goals")
         val historyButton = JButton("Get History")
 
-        val sessionInfoPanel = JPanel(BorderLayout())
+        constraints.gridy = 0
+        buttonPanel.add(startButton, constraints)
+        constraints.gridy = 1
+        buttonPanel.add(pauseButton, constraints)
+        constraints.gridy = 2
+        buttonPanel.add(stopButton, constraints)
+        constraints.gridy = 3
+        buttonPanel.add(sessionInfoButton, constraints)
+        constraints.gridy = 4
+        buttonPanel.add(statsButton, constraints)
+        constraints.gridy = 5
+        buttonPanel.add(goalsButton, constraints)
+        constraints.gridy = 6
+        buttonPanel.add(historyButton, constraints)
+
+        val displayPanel = JPanel(GridBagLayout())
+        val displayConstraints = GridBagConstraints().apply {
+            gridx = 0
+            gridy = 0
+            weightx = 1.0
+            weighty = 1.0
+            fill = GridBagConstraints.BOTH
+            insets = Insets(10, 10, 10, 10)
+        }
+
         val sessionInfoArea = JTextArea(10, 30)
         sessionInfoArea.isEditable = false
-        sessionInfoPanel.add(JScrollPane(sessionInfoArea), BorderLayout.CENTER)
+        displayPanel.add(JScrollPane(sessionInfoArea), displayConstraints.apply { gridy = 0 })
 
-        val statsPanel = JPanel(BorderLayout())
         val statsArea = JTextArea(10, 30)
         statsArea.isEditable = false
-        statsPanel.add(JScrollPane(statsArea), BorderLayout.CENTER)
+        displayPanel.add(JScrollPane(statsArea), displayConstraints.apply { gridy = 1 })
 
-        val goalsPanel = JPanel(BorderLayout())
         val goalsArea = JTextArea(10, 30)
         goalsArea.isEditable = false
-        goalsPanel.add(JScrollPane(goalsArea), BorderLayout.CENTER)
+        displayPanel.add(JScrollPane(goalsArea), displayConstraints.apply { gridy = 2 })
 
-        val historyPanel = JPanel(BorderLayout())
         val historyArea = JTextArea(10, 30)
         historyArea.isEditable = false
-        historyPanel.add(JScrollPane(historyArea), BorderLayout.CENTER)
+        displayPanel.add(JScrollPane(historyArea), displayConstraints.apply { gridy = 3 })
 
-        mainPanel.add(slackIdLabel, constraints.apply { gridy = 0 })
-        mainPanel.add(slackIdField, constraints.apply { gridy = 1 })
-        mainPanel.add(apiKeyLabel, constraints.apply { gridy = 2 })
-        mainPanel.add(apiKeyField, constraints.apply { gridy = 3 })
-        mainPanel.add(submitButton, constraints.apply { gridy = 4 })
-
-        constraints.gridy = 5
-        constraints.weighty = 0.0
-        mainPanel.add(Box.createVerticalStrut(20), constraints)
-
-        mainPanel.add(startButton, constraints.apply { gridy = 6 })
-        mainPanel.add(pauseButton, constraints.apply { gridy = 7 })
-        mainPanel.add(stopButton, constraints.apply { gridy = 8 })
-        mainPanel.add(sessionInfoButton, constraints.apply { gridy = 9 })
-        mainPanel.add(statsButton, constraints.apply { gridy = 10 })
-        mainPanel.add(goalsButton, constraints.apply { gridy = 11 })
-        mainPanel.add(historyButton, constraints.apply { gridy = 12 })
-
-        panel.add(mainPanel, BorderLayout.CENTER)
-        panel.add(sessionInfoPanel, BorderLayout.EAST)
-        panel.add(statsPanel, BorderLayout.SOUTH)
-        panel.add(goalsPanel, BorderLayout.WEST)
-        panel.add(historyPanel, BorderLayout.NORTH)
+        mainPanel.add(formPanel, BorderLayout.NORTH)
+        mainPanel.add(buttonPanel, BorderLayout.WEST)
+        mainPanel.add(displayPanel, BorderLayout.CENTER)
 
         submitButton.addActionListener {
             val slackId = slackIdField.text
@@ -118,7 +133,7 @@ class SessionManagerToolWindowFactory : ToolWindowFactory {
         }
 
         val contentFactory = ContentFactory.getInstance()
-        val content = contentFactory.createContent(panel, "", false)
+        val content = contentFactory.createContent(mainPanel, "", false)
         toolWindow.contentManager.addContent(content)
     }
 
