@@ -247,5 +247,77 @@ class SessionManagerToolWindowFactory : ToolWindowFactory {
         }
     }
 
+    private fun fetchGoals(slackId: String, apiKey: String, goalsArea: JTextArea) {
+        if (slackId.isEmpty() || apiKey.isEmpty()) {
+            Messages.showMessageDialog(
+                "Slack ID or API Key not set. Please configure them first.",
+                "Error",
+                Messages.getErrorIcon()
+            )
+            return
+        }
 
+        ApplicationManager.getApplication().executeOnPooledThread {
+            try {
+                val urlString = "https://hackhour.hackclub.com/api/goals/$slackId"
+                val uri = URI(urlString)
+                val url = uri.toURL()
+                val connection = url.openConnection() as HttpURLConnection
+                connection.requestMethod = "GET"
+                connection.setRequestProperty("Authorization", "Bearer $apiKey")
+
+                val responseCode = connection.responseCode
+                val response = InputStreamReader(connection.inputStream).use { it.readText() }
+
+                SwingUtilities.invokeLater {
+                    if (responseCode == HttpURLConnection.HTTP_OK) {
+                        goalsArea.text = response
+                    } else {
+                        goalsArea.text = "Failed to fetch goals. Response code: $responseCode"
+                    }
+                }
+            } catch (e: Exception) {
+                SwingUtilities.invokeLater {
+                    goalsArea.text = "An error occurred: ${e.message}"
+                }
+            }
+        }
+    }
+
+    private fun fetchHistory(slackId: String, apiKey: String, historyArea: JTextArea) {
+        if (slackId.isEmpty() || apiKey.isEmpty()) {
+            Messages.showMessageDialog(
+                "Slack ID or API Key not set. Please configure them first.",
+                "Error",
+                Messages.getErrorIcon()
+            )
+            return
+        }
+
+        ApplicationManager.getApplication().executeOnPooledThread {
+            try {
+                val urlString = "https://hackhour.hackclub.com/api/history/$slackId"
+                val uri = URI(urlString)
+                val url = uri.toURL()
+                val connection = url.openConnection() as HttpURLConnection
+                connection.requestMethod = "GET"
+                connection.setRequestProperty("Authorization", "Bearer $apiKey")
+
+                val responseCode = connection.responseCode
+                val response = InputStreamReader(connection.inputStream).use { it.readText() }
+
+                SwingUtilities.invokeLater {
+                    if (responseCode == HttpURLConnection.HTTP_OK) {
+                        historyArea.text = response
+                    } else {
+                        historyArea.text = "Failed to fetch history. Response code: $responseCode"
+                    }
+                }
+            } catch (e: Exception) {
+                SwingUtilities.invokeLater {
+                    historyArea.text = "An error occurred: ${e.message}"
+                }
+            }
+        }
+    }
 }
